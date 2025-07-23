@@ -25,9 +25,13 @@ func GetMyLocation(city string) (*GeoData, error) {
 		return nil, err
 	}
 
-	loc := os.Getenv("CITY_LOC")
+	locUrl, err := CheckEnv("CITY_LOC")
 
-	resp, err := http.Get(loc)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.Get(locUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -37,13 +41,19 @@ func GetMyLocation(city string) (*GeoData, error) {
 	}
 
 	body, err := io.ReadAll(resp.Body)
-
 	if err != nil {
 		return nil, err
 	}
-
 	var geo GeoData
-
 	json.Unmarshal(body, &geo)
 	return &geo, nil
+}
+
+func CheckEnv(path string) (string, error) {
+	if err := godotenv.Load(".env"); err != nil {
+		return "", err
+	}
+
+	envVar := os.Getenv(path)
+	return envVar, nil
 }
