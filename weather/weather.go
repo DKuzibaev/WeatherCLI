@@ -1,17 +1,27 @@
 package weather
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"weather-cli/geo"
+)
 
-	"github.com/joho/godotenv"
+var (
+	ErrWrongFormat = errors.New("WRONG_FORMAT")
+	ErrInvalidUrl  = errors.New("ERROR_URL")
+	ErrHttpRequest = errors.New("ERROR_HTTP")
+	ErrReadBody    = errors.New("ERROR_READ_BODY")
 )
 
 func GetWeather(geo geo.GeoData, format int) (string, error) {
+	if format < 1 || format > 4 {
+		return "", ErrWrongFormat
+	}
+
 	wttrUrl, err := CheckEnv("WTTR_ADRT")
 	if err != nil {
 		return "", err
@@ -21,7 +31,7 @@ func GetWeather(geo geo.GeoData, format int) (string, error) {
 
 	if err != nil {
 		fmt.Println(err.Error())
-		return "", err
+		return "", ErrInvalidUrl
 	}
 
 	params := url.Values{}
@@ -30,24 +40,25 @@ func GetWeather(geo geo.GeoData, format int) (string, error) {
 	baseUrl.RawQuery = params.Encode()
 
 	resp, err := http.Get(baseUrl.String())
+
 	if err != nil {
 		fmt.Println(err.Error())
-		return "", err
+		return "", ErrHttpRequest
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println(err.Error())
-		return "", err
+		return "", ErrReadBody
 	}
 
 	return string(body), nil
 }
 
-func CheckEnv(path string) (string, error) {
-	if err := godotenv.Load(".env"); err != nil {
-		return "", err
+func CheckEnv(key string) (string, error) {
+	val := os.Getenv(key)
+	if val == "" {
+		return "", fmt.Errorf("environment variable %s not set", key)
 	}
-	envVar := os.Getenv(path)
-	return envVar, nil
+	return val, nil
 }

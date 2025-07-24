@@ -12,20 +12,28 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var (
+	ErrNoCity       = errors.New("NOCITY")
+	ErrStatusNot200 = errors.New("NOT-200")
+	ErrCityPop      = errors.New("CITY_POPLR IS EMPTY")
+)
+
 type GeoData struct {
 	City string `json:"city"`
 }
 
-type CityPopulationResponse struct {
+type CityPopulationResponce struct {
 	Error bool `json:"error"`
 }
 
 func GetMyLocation(city string) (*GeoData, error) {
-	
+
 	if city != "" {
-		if isCity := checkCity(city); isCity {
-			panic("There is no such city!")
+		isCity := checkCity(city)
+		if !isCity {
+			return nil, ErrNoCity
 		}
+
 		return &GeoData{
 			City: city,
 		}, nil
@@ -46,7 +54,7 @@ func GetMyLocation(city string) (*GeoData, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return nil, errors.New("NOT-200")
+		return nil, ErrStatusNot200
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -58,24 +66,13 @@ func GetMyLocation(city string) (*GeoData, error) {
 	return &geo, nil
 }
 
-func CheckEnv(path string) (string, error) {
-	if err := godotenv.Load(".env"); err != nil {
-		return "", err
-	}
-
-	envVar := os.Getenv(path)
-	return envVar, nil
-}
-
-
-func checkCity(city string) (bool) {
+func checkCity(city string) bool {
 	cityUrl, err := CheckEnv("CITY_POPLR")
-
 	if err != nil {
-		fmt.Println(err.Error())
 		return false
 	}
-	postBody, _ :=json.Marshal(map[string]string{
+
+	postBody, _ := json.Marshal(map[string]string{
 		"city": city,
 	})
 
@@ -88,9 +85,16 @@ func checkCity(city string) (bool) {
 	if err != nil {
 		return false
 	}
+	var populationResponce CityPopulationResponce
+	json.Unmarshal(body, &populationResponce)
+	return !populationResponce.Error
 
-	var populationResponse CityPopulationResponse
-	json.Unmarshal(body, &populationResponse)
-	return populationResponse.Error
+}
 
+func CheckEnv(key string) (string, error) {
+	val := os.Getenv(key)
+	if val == "" {
+		return "", fmt.Errorf("environment variable %s not set", key)
+	}
+	return val, nil
 }
