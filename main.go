@@ -33,7 +33,7 @@ func runMenu() {
 		printMenu(menuValues...)
 		fmt.Print("Выбрать пункт: ")
 		var point string
-		fmt.Scanln(&point) // Используйте Scanln вместо Scan, чтобы избежать проблем с новой строкой
+		fmt.Scanln(&point)
 
 		switch point {
 		case "1":
@@ -46,9 +46,6 @@ func runMenu() {
 		default:
 			fmt.Println("Неверный пункт меню, попробуйте снова")
 		}
-
-		// Добавим пустую строку для разделения итераций
-		fmt.Println()
 	}
 }
 
